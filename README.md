@@ -1,62 +1,19 @@
-# Semantic File Search
+# tracker
 
-A native, system-wide semantic file indexer written in C.
+Local semantic search over the files on your machine. Rust + SQLite, Unix-first (macOS and Linux).
 
-Recursively scan a specified directory, calculate file hashes, and store file descriptions in SQLite.
-
----
-
-- Recursive directory crawling
-- SHA-256 file hashing
-- SQLite metadata and description storage
-- Change detection using hash + mtime + size
-- Basic file type inference from extension
-
----
-
-## Build
-
-### Dependencies
-
-- `sqlite3`
-- `openssl`
-
-### macOS (with Homebrew)
+## Run
 
 ```bash
-brew install sqlite3 openssl
-gcc tracker.c -o indexer \
-  -I$(brew --prefix openssl)/include \
-  -L$(brew --prefix openssl)/lib \
-  -lsqlite3 -lssl -lcrypto \
-  -Wall -Wextra -Wno-deprecated-declarations
+cargo run --release -- ~/Documents
 ```
 
-### Linux (Debian/Ubuntu)
+Prints `size  mtime  path` for every regular file under the directory, then a file count and timing on stderr.
 
-```bash
-sudo apt install build-essential libsqlite3-dev libssl-dev
-gcc tracker.c -o indexer \
-  -lsqlite3 -lssl -lcrypto \
-  -Wall -Wextra
-```
+## Roadmap
 
-### Usage
-
-```bash
-./indexer <database_path> <directory_to_scan> [max_depth]
-```
-
-### Example
-
-```bash
-./indexer myindex.db ~/Desktop/test_scan 1
-```
-
-### Planned Features
-- AI-based description generation (CLIP, LLMs)
-- File format-aware parsing (PDF, DOCX, code, etc)
-- CLI search frontend (possibly in Rust or C)
-- Live file system change tracking (libgit2 or inotify/FSEvents)
-- Ignore rules (.searchignore)
-- Fuzzy text search via ripgrep
+1. [x] **Crawl**: walk a directory tree and print file metadata
+2. [ ] **Store**: keep that metadata in SQLite; detect new, changed and deleted files between runs
+3. [ ] **Keyword search**: extract text from plain-text files, split it into chunks, index it with FTS5
+4. [ ] **Semantic search**: embed the chunks, search by vector, merge with keyword results
+5. [ ] **More**: PDFs and images, file watching (FSEvents/inotify), background indexing
