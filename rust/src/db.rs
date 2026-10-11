@@ -1,4 +1,4 @@
-use rusqlite::{Connection, params};
+use rusqlite::{params, Connection};
 use std::env;
 use std::error::Error;
 use std::fs::{self, Metadata};
@@ -30,7 +30,6 @@ pub fn next_crawl(conn: &Connection) -> rusqlite::Result<i64> {
     )
 }
 
-//records that crawl number `crawl` found this file
 pub fn save_file(
     conn: &Connection,
     path: &Path,
@@ -40,9 +39,9 @@ pub fn save_file(
     let path_bytes = path.as_os_str().as_bytes();
     let byte_count = meta.len() as i64;
     let last_modified = meta.mtime() * 1_000_000_000 + meta.mtime_nsec();
-    let values = params![path_bytes, byte_count, last_modified, crawl]; //?1 ?2 ?3 ?4 below
+    let values = params![path_bytes, byte_count, last_modified, crawl]; 
 
-    //known and unchanged: just stamp it with this crawl
+    //known and unchanged: only increment the last_crawl value
     let updated = conn
         .prepare_cached(
             "UPDATE files SET last_crawl = ?4
@@ -53,7 +52,8 @@ pub fn save_file(
         return Ok(Change::Unchanged);
     }
 
-    //known but different: store the new size and time
+    //known file but changed since last crawl: store the new size and time and increment the
+    //last_crawl
     let updated = conn
         .prepare_cached(
             "UPDATE files SET byte_count = ?2, last_modified = ?3, last_crawl = ?4
@@ -64,7 +64,7 @@ pub fn save_file(
         return Ok(Change::Changed);
     }
 
-    //never seen before
+    //never seen/ new file, insert new row
     conn.prepare_cached(
         "INSERT INTO files (path, byte_count, last_modified, last_crawl)
          VALUES (?1, ?2, ?3, ?4)",
