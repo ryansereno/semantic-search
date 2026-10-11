@@ -1,4 +1,4 @@
-//! Walks a directory tree and reports every regular file in it.
+//walks directory tree and reports every regular file in it.
 
 use std::fs::{self, Metadata};
 use std::io;
@@ -56,7 +56,6 @@ pub fn walk(root: &Path, mut on_file: impl FnMut(&Path, &Metadata)) {
             } else if meta.is_file() {
                 on_file(&path, &meta);
             }
-            // Anything else (symlinks, FIFOs, sockets, devices) is ignored.
         }
     }
 }

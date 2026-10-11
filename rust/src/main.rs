@@ -8,8 +8,6 @@ use std::process;
 use std::time::Instant;
 
 fn main() {
-    // Usage: tracker [DIR]  (defaults to the current directory).
-    // args_os rather than args: paths aren't guaranteed to be valid UTF-8.
     let root = env::args_os()
         .nth(1)
         .map(PathBuf::from)
@@ -21,9 +19,9 @@ fn main() {
 
     crawl::walk(&root, |path, meta| {
         count += 1;
-        let size = meta.len(); // bytes
-        let mtime = meta.mtime(); // seconds since 1970
-        let written = writeln!(out, "{size:>12}  {mtime}  {}", path.display());
+        let byte_count = meta.len(); 
+        let last_modified = meta.mtime(); 
+        let written = writeln!(out, "{byte_count:>12}  {last_modified}  {}", path.display());
         if written.is_err() {
             // stdout was closed, e.g. piped into `head`. Stop quietly.
             process::exit(0);
