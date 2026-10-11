@@ -1,30 +1,27 @@
-//walks directory tree and reports every regular file in it.
+//walk directory tree and report every file in it.
+//skip hidden files, don't follow symlinks, don't trigger cloud-dir downloads, skip sockets and
+//devices
+//returns the dirs it couldn't fully read, so their files aren't mistaken for deleted.
+//stops early if on_file returns an error.
 
+use std::error::Error;
 use std::fs::{self, Metadata};
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-/// Walks the tree under `root`, calling `on_file` for every regular file.
-///
-/// - Hidden entries (names starting with `.`) are skipped along with
-///   everything inside them: `.git`, `.cache`, `.Trash` and friends.
-/// - Symlinks are never followed, so there are no cycles and no wandering
-///   outside `root`.
-/// - Only regular files are reported. FIFOs, sockets and devices are skipped.
-/// - Files are `stat`ed, never opened, so a crawl is cheap and won't make
-///   iCloud download the contents of cloud-only files.
-/// - Errors (usually permission denied) are printed and skipped, so one
-///   unreadable directory doesn't stop the crawl.
-pub fn walk(root: &Path, mut on_file: impl FnMut(&Path, &Metadata)) {
-    // Directories still to visit. A stack instead of recursion means a very
-    // deep tree can't overflow the call stack.
+pub fn walk(
+    root: &Path,
+    mut on_file: impl FnMut(&Path, &Metadata) -> Result<(), Box<dyn Error>>,
+) -> Result<Vec<PathBuf>, Box<dyn Error>> {
     let mut pending = vec![root.to_path_buf()];
+    let mut unreadable = Vec::new();
 
     while let Some(dir) = pending.pop() {
         let entries = match fs::read_dir(&dir) {
             Ok(entries) => entries,
             Err(err) => {
                 skip(&dir, &err);
+                unreadable.push(dir);
                 continue;
             }
         };
@@ -34,6 +31,7 @@ pub fn walk(root: &Path, mut on_file: impl FnMut(&Path, &Metadata)) {
                 Ok(entry) => entry,
                 Err(err) => {
                     skip(&dir, &err);
+                    unreadable.push(dir.clone());
                     continue;
                 }
             };
@@ -42,11 +40,11 @@ pub fn walk(root: &Path, mut on_file: impl FnMut(&Path, &Metadata)) {
             }
 
             let path = entry.path();
-            // Like lstat(2): a symlink reports as a symlink, not as its target.
             let meta = match entry.metadata() {
                 Ok(meta) => meta,
                 Err(err) => {
                     skip(&path, &err);
+                    unreadable.push(dir.clone());
                     continue;
                 }
             };
@@ -54,10 +52,12 @@ pub fn walk(root: &Path, mut on_file: impl FnMut(&Path, &Metadata)) {
             if meta.is_dir() {
                 pending.push(path);
             } else if meta.is_file() {
-                on_file(&path, &meta);
+                on_file(&path, &meta)?;
             }
         }
     }
+
+    Ok(unreadable)
 }
 
 fn skip(path: &Path, err: &io::Error) {
