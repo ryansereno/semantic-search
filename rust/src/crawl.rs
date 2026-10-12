@@ -1,6 +1,6 @@
 //walk directory tree and report every file in it.
-//skip hidden files, don't follow symlinks, don't trigger cloud-dir downloads, skip sockets and
-//devices
+//skip hidden files and node_modules, don't follow symlinks, don't trigger cloud-dir downloads,
+//skip sockets and devices
 //returns the dirs it couldn't fully read, so their files aren't mistaken for deleted.
 //stops early if on_file returns an error.
 
@@ -35,7 +35,8 @@ pub fn walk(
                     continue;
                 }
             };
-            if entry.file_name().as_encoded_bytes().starts_with(b".") {
+            let name = entry.file_name();
+            if name.as_encoded_bytes().starts_with(b".") || name == "node_modules" {
                 continue;
             }
 
