@@ -1,6 +1,6 @@
 <img src="icon/matrix-search-icon.png" alt="Treasure Trove logo" width="200" />
 
-Semantic search- the ability to search for files (images, text, video, etc ) with casual, natural language.
+Semantic search- the ability to search for files (images, text, video, etc ) with casual, natural language, via vector similarity.
 
 This singular modality/ interface has been a life change in regard to interacting with computers.
 
