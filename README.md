@@ -5,6 +5,7 @@ Semantic search- the ability to search for files (images, text, video, etc ) wit
 This singular modality/ interface has been a life change in regard to interacting with computers.
 
 This is a lightweight (rust & sqlite) tool to achieve semantic search on any unix system.
+This tool is designed to be extensible, so that you can add your own file parsing tools to expand support beyond the default supported file types.
 
 ## How to use
 
