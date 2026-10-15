@@ -1,11 +1,14 @@
-<img src="icon/matrix-search-icon.png" alt="Treasure Trove logo" width="200" />
+<img src="icon/matrix-search-icon.png" alt="Treasure Trove logo" width="110" />
 
-Semantic search- the ability to search for files (images, text, video, etc ) with casual, natural language, via vector similarity.
+Semantic search is an information retrieval technique that uses the underlying meaning/ intent of a user's query rather than just simple keyword matching.
 
-This singular modality/ interface has been a life change in regard to interacting with computers.
+This singular modality has been life changing for me, in regard to interacting with computers.
 
-This is a lightweight (rust & sqlite) tool to achieve semantic search on any unix system.
-This tool is designed to be extensible, so that you can add your own file parsing tools to expand support beyond the default supported file types.
+This tool brings semantic search to your whole file system- search for files (images, text, video, etc ) with casual, natural language, via vector similarity.
+
+This is a lightweight (rust & sqlite) tool to achieve semantic search on any unix file system.
+
+This tool is designed to be extensible, so you can add your own file parsing tools to expand support beyond the default supported file types.
 
 ## How to use
 
