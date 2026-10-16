@@ -2,7 +2,7 @@
 
 Semantic search is an information retrieval technique that uses the underlying meaning/ intent of a user's query rather than just simple keyword matching.
 
-This single modality has been life changing for me, in regard to interacting with computers.
+Ever since the introduction of semantic search to Google Photos, iCloud, and now MacOs- this single modality has been life changing for me, in regard to interacting with computers.
 
 Find: "photos of my daughter's first birthday", "last year's tax return documents", "the final version of the CAD model", etc.
 
