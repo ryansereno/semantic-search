@@ -7,6 +7,7 @@ use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 pub struct Config {
+    pub found: bool,
     pub extract: HashMap<String, Vec<String>>,
 }
 
@@ -16,7 +17,12 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
 
     let text = match fs::read_to_string(&path) {
         Ok(text) => text,
-        Err(err) if err.kind() == ErrorKind::NotFound => String::from("{}"),
+        Err(err) if err.kind() == ErrorKind::NotFound => {
+            return Ok(Config {
+                found: false,
+                extract: HashMap::new(),
+            });
+        }
         Err(err) => return Err(format!("can't read {}: {err}", path.display()).into()),
     };
     match parse(&text, &home) {
@@ -37,6 +43,7 @@ fn parse(text: &str, home: &Path) -> Result<Config, String> {
     }
 
     let mut config = Config {
+        found: true,
         extract: HashMap::new(),
     };
     match root.get("extract") {

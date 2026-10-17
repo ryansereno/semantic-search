@@ -1,4 +1,4 @@
-use rusqlite::{params, Connection};
+use rusqlite::{Connection, params};
 use std::env;
 use std::error::Error;
 use std::ffi::OsStr;

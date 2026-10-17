@@ -95,7 +95,11 @@ fn crawl_command(dir: &Path) -> Result<(), Box<dyn Error>> {
 
 fn extract_command(retry: bool) -> Result<(), Box<dyn Error>> {
     let started = Instant::now();
-    let extractors = extract::extractors(config::load_config()?);
+    let config = config::load_config()?;
+    if !config.found {
+        eprintln!("no ~/.tracker/config.json: only plain-text files are read");
+    }
+    let extractors = extract::extractors(config);
     let mut conn = db::open()?;
     if retry {
         db::clear_failures(&conn)?;
