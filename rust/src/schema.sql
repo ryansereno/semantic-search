@@ -16,6 +16,13 @@ CREATE TABLE IF NOT EXISTS chunks (
 );
 CREATE INDEX IF NOT EXISTS chunks_by_hash ON chunks(hash);
 
+--one row per content that was extracted: error is NULL if it worked
+CREATE TABLE IF NOT EXISTS contents (
+    hash    BLOB PRIMARY KEY,
+    command TEXT NOT NULL,
+    error   TEXT
+);
+
 CREATE VIRTUAL TABLE IF NOT EXISTS chunks_fts USING fts5(text, content='chunks', content_rowid='id');
 
 CREATE TRIGGER IF NOT EXISTS chunks_added AFTER INSERT ON chunks BEGIN
