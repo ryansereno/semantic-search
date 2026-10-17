@@ -1,4 +1,4 @@
-use rusqlite::{Connection, params};
+use rusqlite::{params, Connection};
 use std::env;
 use std::error::Error;
 use std::ffi::OsStr;
@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 
 use crate::text::Chunk;
 
-const SCHEMA_VERSION: i64 = 2;
+const SCHEMA_VERSION: i64 = 3;
 
 #[derive(PartialEq)]
 pub enum Change {
@@ -24,6 +24,11 @@ pub struct Hit {
     pub snippet: String,
 }
 
+pub struct Extraction {
+    pub command: String,
+    pub error: Option<String>,
+}
+
 pub fn open() -> Result<Connection, Box<dyn Error>> {
     let home = env::var_os("HOME").expect("HOME is not set");
     let dir = Path::new(&home).join(".tracker");
@@ -35,7 +40,7 @@ pub fn open() -> Result<Connection, Box<dyn Error>> {
     let tables: i64 = conn.query_row("SELECT count(*) FROM sqlite_master", [], |row| row.get(0))?;
     if tables > 0 && version != SCHEMA_VERSION {
         let message = format!(
-            "{} is from an older version; delete it and crawl again",
+            "{} is from an older version; delete it and run tracker update again",
             path.display()
         );
         return Err(message.into());
@@ -103,26 +108,71 @@ pub fn set_hash(conn: &Connection, path: &Path, hash: &[u8]) -> rusqlite::Result
     Ok(())
 }
 
-//whether these exact contents were already indexed, e.g. a copy of the same file
-pub fn has_chunks(conn: &Connection, hash: &[u8]) -> rusqlite::Result<bool> {
-    conn.prepare_cached("SELECT EXISTS (SELECT 1 FROM chunks WHERE hash = ?1)")?
-        .query_row(params![hash], |row| row.get(0))
+pub fn each_file(
+    conn: &Connection,
+    mut on_file: impl FnMut(PathBuf, Option<String>),
+) -> rusqlite::Result<()> {
+    let mut statement = conn.prepare(
+        "SELECT files.path, contents.command
+         FROM files LEFT JOIN contents ON contents.hash = files.hash",
+    )?;
+    let mut rows = statement.query([])?;
+    while let Some(row) = rows.next()? {
+        let path_bytes: Vec<u8> = row.get(0)?;
+        let command: Option<String> = row.get(1)?;
+        on_file(PathBuf::from(OsStr::from_bytes(&path_bytes)), command);
+    }
+    Ok(())
 }
 
-pub fn save_chunks(conn: &Connection, hash: &[u8], chunks: &[Chunk]) -> rusqlite::Result<()> {
+pub fn extraction(conn: &Connection, hash: &[u8]) -> rusqlite::Result<Option<Extraction>> {
+    let mut statement =
+        conn.prepare_cached("SELECT command, error FROM contents WHERE hash = ?1")?;
+    let mut rows = statement.query(params![hash])?;
+    match rows.next()? {
+        Some(row) => Ok(Some(Extraction {
+            command: row.get(0)?,
+            error: row.get(1)?,
+        })),
+        None => Ok(None),
+    }
+}
+
+pub fn save_extraction(
+    conn: &Connection,
+    hash: &[u8],
+    command: &str,
+    chunks: &[Chunk],
+    error: Option<&str>,
+) -> rusqlite::Result<()> {
+    conn.prepare_cached("DELETE FROM chunks WHERE hash = ?1")?
+        .execute(params![hash])?;
     let mut insert =
         conn.prepare_cached("INSERT INTO chunks (hash, start_line, text) VALUES (?1, ?2, ?3)")?;
     for chunk in chunks {
         insert.execute(params![hash, chunk.start_line, chunk.text])?;
     }
+    conn.prepare_cached(
+        "INSERT OR REPLACE INTO contents (hash, command, error) VALUES (?1, ?2, ?3)",
+    )?
+    .execute(params![hash, command, error])?;
     Ok(())
 }
 
-pub fn delete_orphan_chunks(conn: &Connection) -> rusqlite::Result<usize> {
+pub fn clear_failures(conn: &Connection) -> rusqlite::Result<usize> {
+    conn.execute("DELETE FROM contents WHERE error IS NOT NULL", [])
+}
+
+pub fn delete_orphans(conn: &Connection) -> rusqlite::Result<()> {
     conn.execute(
         "DELETE FROM chunks WHERE NOT EXISTS (SELECT 1 FROM files WHERE files.hash = chunks.hash)",
         [],
-    )
+    )?;
+    conn.execute(
+        "DELETE FROM contents WHERE NOT EXISTS (SELECT 1 FROM files WHERE files.hash = contents.hash)",
+        [],
+    )?;
+    Ok(())
 }
 
 pub fn search(
