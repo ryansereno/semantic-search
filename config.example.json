@@ -1,0 +1,10 @@
+{
+  "extract": {
+    "pdf":  ["pdftotext", "{path}", "-"],
+    "png":  ["tesseract", "{path}", "stdout"],
+    "jpg":  ["~/.tracker/plugins/ocr"],
+    "jpeg": ["~/.tracker/plugins/ocr"],
+    "heic": ["~/.tracker/plugins/ocr"]
+  },
+  "embed": ["~/.tracker/plugins/embed"]
+}
